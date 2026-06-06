@@ -186,7 +186,7 @@ class PretendPlayScene extends Phaser.Scene {
     this.puddleManifest = manifest;
     this.puddle = this.addSceneObject(this.add.image(x, y, toFrameKey(manifest.id, 'idle', 0)));
     this.puddle.setOrigin(manifest.origin.x, manifest.origin.y);
-    this.puddle.setScale(manifest.defaultScale * 1.25);
+    this.puddle.setScale(manifest.defaultScale * 0.8);
     this.puddle.setDepth(5);
 
     const zone = manifest.interactionZones?.[0];
@@ -297,24 +297,6 @@ class PretendPlayScene extends Phaser.Scene {
       this.showMap();
     });
 
-    const leftPan = this.addUi(
-      this.add
-        .ellipse(42, VIEW_HEIGHT / 2, 54, 86, 0xffffff, 0.72)
-        .setStrokeStyle(2, 0xeadfcf)
-        .setInteractive({ useHandCursor: true })
-    );
-    const leftPanText = this.addUi(this.add.text(42, VIEW_HEIGHT / 2, '‹', { fontSize: '54px', color: '#1f2937' }).setOrigin(0.5));
-    const rightPan = this.addUi(
-      this.add
-        .ellipse(VIEW_WIDTH - 42, VIEW_HEIGHT / 2, 54, 86, 0xffffff, 0.72)
-        .setStrokeStyle(2, 0xeadfcf)
-        .setInteractive({ useHandCursor: true })
-    );
-    const rightPanText = this.addUi(this.add.text(VIEW_WIDTH - 42, VIEW_HEIGHT / 2, '›', { fontSize: '54px', color: '#1f2937' }).setOrigin(0.5));
-
-    leftPan.on('pointerdown', () => this.panCameraBy(-420));
-    rightPan.on('pointerdown', () => this.panCameraBy(420));
-
     this.createFullscreenButton();
 
     const trayToggle = this.addUi(
@@ -333,8 +315,6 @@ class PretendPlayScene extends Phaser.Scene {
     void topBar;
     void mapText;
     void title;
-    void leftPanText;
-    void rightPanText;
     void trayIcon;
   }
 
@@ -693,8 +673,8 @@ class PretendPlayScene extends Phaser.Scene {
       this.addSparkleBurst(this.puddle.x, this.puddle.y - 70);
       this.tweens.add({
         targets: this.puddle,
-        scaleX: this.puddleManifest.defaultScale * 1.38,
-        scaleY: this.puddleManifest.defaultScale * 1.38,
+        scaleX: this.puddle.scaleX * 1.18,
+        scaleY: this.puddle.scaleY * 1.18,
         duration: 120,
         yoyo: true,
         onComplete: () => this.puddle?.setTexture(idleKey)
