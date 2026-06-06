@@ -1,0 +1,21 @@
+{
+  "id": "george",
+  "displayName": "George",
+  "type": "character",
+  "reviewStatus": "draft",
+  "reviewNotes": "Using Candidate 004 as the current best George candidate; canvas normalized for bottom-center anchoring.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.38,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": [
+        "assets/sprites/characters/george/idle_001.png",
+        "assets/sprites/characters/george/idle_002.png",
+        "assets/sprites/characters/george/idle_003.png",
+        "assets/sprites/characters/george/idle_002.png"
+      ]
+    }
+  }
+}

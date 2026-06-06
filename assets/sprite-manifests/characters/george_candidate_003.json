@@ -1,0 +1,16 @@
+{
+  "id": "george_candidate_003",
+  "displayName": "George Candidate 003",
+  "type": "character",
+  "reviewStatus": "draft",
+  "reviewNotes": "Generated with Peppa sprite as style reference. Simpler than previous version, but shirt/body shape may need review.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.38,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": ["assets/sprites/characters/george/candidates/idle_candidate_003.png"]
+    }
+  }
+}

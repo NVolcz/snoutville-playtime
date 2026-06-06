@@ -1,0 +1,291 @@
+:root {
+  color: #1f2937;
+  background: #f6f1e8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+.app-header {
+  align-items: center;
+  background: #fffaf0;
+  border-bottom: 1px solid #eadfcf;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.app-header h1,
+.app-header p {
+  margin: 0;
+}
+
+.app-header h1 {
+  font-size: 24px;
+}
+
+.app-header p {
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.app-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.app-nav a {
+  border-radius: 999px;
+  color: #1f2937;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.app-nav a[data-active="true"] {
+  background: #ef4444;
+  color: white;
+}
+
+.page-root {
+  padding: 24px;
+}
+
+.game-root {
+  min-height: 100vh;
+}
+
+.panel {
+  background: #fffaf0;
+  border: 1px solid #eadfcf;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+  padding: 20px;
+}
+
+.panel-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-header h2,
+.panel-header p {
+  margin: 0;
+}
+
+.panel-header p {
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.badge {
+  background: #fde68a;
+  border-radius: 999px;
+  color: #713f12;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+
+.controls-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.controls-grid label {
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.controls-grid select,
+.controls-grid input {
+  border: 1px solid #d6c8b8;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.button-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.button-row button {
+  background: #3b82f6;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 10px 14px;
+}
+
+.checkbox-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.preview-stage {
+  border: 1px solid #d6c8b8;
+  border-radius: 20px;
+  height: min(62vh, 560px);
+  min-height: 360px;
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-stage img {
+  left: 50%;
+  object-fit: contain;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.checkerboard {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(45deg, #d1d5db 25%, transparent 25%),
+    linear-gradient(-45deg, #d1d5db 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d1d5db 75%),
+    linear-gradient(-45deg, transparent 75%, #d1d5db 75%);
+  background-position: 0 0, 0 16px, 16px -16px, -16px 0;
+  background-size: 32px 32px;
+}
+
+.white {
+  background: white;
+}
+
+.park {
+  background: linear-gradient(#bde7ff 0 62%, #8ed174 62% 100%);
+}
+
+.house {
+  background: linear-gradient(#ffe7be 0 70%, #d6b48f 70% 100%);
+}
+
+.anchor-marker {
+  background: #ef4444;
+  border: 3px solid white;
+  border-radius: 999px;
+  height: 18px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  z-index: 3;
+}
+
+.anchor-marker::before,
+.anchor-marker::after {
+  background: #ef4444;
+  content: '';
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.anchor-marker::before {
+  height: 2px;
+  width: 34px;
+}
+
+.anchor-marker::after {
+  height: 34px;
+  width: 2px;
+}
+
+.interaction-zone {
+  border: 3px dashed #2563eb;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.interaction-zone.ellipse {
+  border-radius: 999px;
+}
+
+.metadata-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 16px 0 0;
+}
+
+.metadata-grid div {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.metadata-grid dt {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.metadata-grid dd {
+  margin: 4px 0 0;
+}
+
+#game-canvas {
+  background: #111827;
+  display: grid;
+  min-height: 100vh;
+  overflow: hidden;
+  place-items: center;
+}
+
+#game-canvas canvas {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .app-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-nav a {
+    flex: 1;
+    text-align: center;
+  }
+
+  .page-root {
+    padding: 12px;
+  }
+
+  .controls-grid,
+  .metadata-grid {
+    grid-template-columns: 1fr;
+  }
+}

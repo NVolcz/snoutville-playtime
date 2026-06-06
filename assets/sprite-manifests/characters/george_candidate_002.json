@@ -1,0 +1,16 @@
+{
+  "id": "george_candidate_002",
+  "displayName": "George Candidate 002",
+  "type": "character",
+  "reviewStatus": "needs_changes",
+  "reviewNotes": "Generated with Peppa sprite as style reference, but includes an unwanted extra object near the hand.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.38,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": ["assets/sprites/characters/george/candidates/idle_candidate_002.png"]
+    }
+  }
+}

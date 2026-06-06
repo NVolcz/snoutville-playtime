@@ -1,0 +1,16 @@
+{
+  "id": "george_candidate_004",
+  "displayName": "George Candidate 004",
+  "type": "character",
+  "reviewStatus": "draft",
+  "reviewNotes": "Generated using george-pig-reference.webp plus Peppa and Candidate 003 references. Intended to improve identity/proportions.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.38,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": ["assets/sprites/characters/george/candidates/idle_candidate_004.png"]
+    }
+  }
+}

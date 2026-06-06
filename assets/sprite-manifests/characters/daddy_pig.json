@@ -1,0 +1,21 @@
+{
+  "id": "daddy_pig",
+  "displayName": "Daddy Pig",
+  "type": "character",
+  "reviewStatus": "draft",
+  "reviewNotes": "AI-generated candidate using Peppa as style reference; transparent PNG and simple idle loop created for review.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.5,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": [
+        "assets/sprites/characters/daddy_pig/idle_001.png",
+        "assets/sprites/characters/daddy_pig/idle_002.png",
+        "assets/sprites/characters/daddy_pig/idle_003.png",
+        "assets/sprites/characters/daddy_pig/idle_002.png"
+      ]
+    }
+  }
+}

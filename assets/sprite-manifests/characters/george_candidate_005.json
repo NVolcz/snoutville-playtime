@@ -1,0 +1,16 @@
+{
+  "id": "george_candidate_005",
+  "displayName": "George Candidate 005",
+  "type": "character",
+  "reviewStatus": "draft",
+  "reviewNotes": "Candidate 003 shortened with ImageMagick to preserve the preferred style while reducing height.",
+  "origin": { "x": 0.5, "y": 1.0 },
+  "defaultScale": 0.38,
+  "animations": {
+    "idle": {
+      "fps": 2,
+      "loop": true,
+      "frames": ["assets/sprites/characters/george/candidates/idle_candidate_005_shorter_003.png"]
+    }
+  }
+}

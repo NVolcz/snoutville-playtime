@@ -1,0 +1,31 @@
+{
+  "id": "muddy_puddle",
+  "displayName": "Muddy Puddle",
+  "type": "fixed_object",
+  "reviewStatus": "draft",
+  "reviewNotes": "Transparent PNG created from AI-generated JPG source for human review.",
+  "origin": { "x": 0.5, "y": 0.5 },
+  "defaultScale": 0.55,
+  "interactionZones": [
+    {
+      "id": "main_zone",
+      "shape": "ellipse",
+      "x": 0,
+      "y": 0,
+      "width": 180,
+      "height": 80
+    }
+  ],
+  "animations": {
+    "idle": {
+      "fps": 1,
+      "loop": true,
+      "frames": ["assets/sprites/fixed-objects/muddy_puddle/idle_001.png"]
+    },
+    "splash": {
+      "fps": 8,
+      "loop": false,
+      "frames": ["assets/sprites/fixed-objects/muddy_puddle/splash_001.png"]
+    }
+  }
+}
