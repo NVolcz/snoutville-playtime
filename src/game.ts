@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { AudioManager } from './audioManager';
+import { startIdleAnimation as startCharacterIdleAnimation, stopIdleAnimation as stopCharacterIdleAnimation } from './characterAnimation';
 import { characterManifests, fixedObjectManifests, getAssetUrl } from './assetRegistry';
 import { getLocation, getLocationIcon, locations } from './sceneDefinitions';
 import type { FixedObjectInstance, FixedObjectReaction, LocationDefinition } from './sceneDefinitions';
@@ -579,41 +580,11 @@ class PretendPlayScene extends Phaser.Scene {
 
   private startIdleAnimation(instance: CharacterInstance): void {
     if (!this.characters.includes(instance) || instance.image.scene !== this) return;
-    this.stopIdleAnimation(instance);
-
-    const animation = instance.manifest.animations.idle;
-    const frames = animation?.frames ?? [];
-    const frameKeys = frames.map((_frame, index) => toFrameKey(instance.manifest.id, 'idle', index));
-    let frameIndex = 0;
-
-    instance.idleEvent = this.time.addEvent({
-      delay: 1000 / Math.max(animation?.fps ?? 2, 1),
-      loop: true,
-      callback: () => {
-        if (frameKeys.length === 0 || !this.characters.includes(instance)) return;
-        frameIndex = (frameIndex + 1) % frameKeys.length;
-        instance.image.setTexture(frameKeys[frameIndex]);
-      }
-    });
-
-    this.tweens.add({
-      targets: instance.image,
-      scaleX: getGameScale(instance.manifest) * 1.015,
-      scaleY: getGameScale(instance.manifest) * 0.985,
-      y: instance.image.y - 3,
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    startCharacterIdleAnimation({ scene: this, character: instance, getScale: getGameScale, getFrameKey: toFrameKey });
   }
 
   private stopIdleAnimation(instance: CharacterInstance): void {
-    instance.idleEvent?.remove(false);
-    instance.idleEvent = undefined;
-    this.tweens.killTweensOf(instance.image);
-    instance.image.setScale(getGameScale(instance.manifest));
-    instance.image.setRotation(0);
+    stopCharacterIdleAnimation(this, instance, getGameScale);
   }
 
   private addDragWiggle(instance: CharacterInstance, deltaX: number): void {
