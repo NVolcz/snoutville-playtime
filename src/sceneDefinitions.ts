@@ -56,7 +56,8 @@ export const locations: LocationDefinition[] = [
       { id: 'george', x: 470, y: 585 }
     ],
     drawBackground: (scene) => {
-      scene.addSceneObject(scene.add.rectangle(1200, 360, 2400, 720, 0xbde7ff));
+      scene.addSceneObject(scene.add.image(1200, 360, 'background_park').setDisplaySize(2400, 720));
+      scene.addSceneObject(scene.add.rectangle(1200, 360, 2400, 720, 0xbde7ff, 0.12));
       scene.addSceneObject(scene.add.rectangle(1200, 610, 2400, 220, 0x8ed174));
       scene.addSceneObject(scene.add.circle(1030, 115, 62, 0xfff7a8));
       scene.addSceneObject(scene.add.circle(130, 125, 45, 0xffffff, 0.9));
@@ -84,7 +85,8 @@ export const locations: LocationDefinition[] = [
       { id: 'peppa', x: 680, y: 590 }
     ],
     drawBackground: (scene) => {
-      scene.addSceneObject(scene.add.rectangle(1100, 360, 2200, 720, 0xffe7be));
+      scene.addSceneObject(scene.add.image(1100, 360, 'background_house').setDisplaySize(2200, 720));
+      scene.addSceneObject(scene.add.rectangle(1100, 360, 2200, 720, 0xffe7be, 0.1));
       scene.addSceneObject(scene.add.rectangle(1100, 610, 2200, 220, 0xd6b48f));
       scene.addSceneObject(scene.add.rectangle(160, 240, 190, 150, 0xffffff, 0.65).setStrokeStyle(4, 0x9cc4e4));
       scene.addSceneObject(scene.add.line(160, 240, -95, 0, 95, 0, 0x9cc4e4).setLineWidth(4));
@@ -121,7 +123,8 @@ export const locations: LocationDefinition[] = [
       { id: 'mummy_pig', x: 640, y: 590 }
     ],
     drawBackground: (scene) => {
-      scene.addSceneObject(scene.add.rectangle(1150, 360, 2300, 720, 0xdbeafe));
+      scene.addSceneObject(scene.add.image(1150, 360, 'background_school').setDisplaySize(2300, 720));
+      scene.addSceneObject(scene.add.rectangle(1150, 360, 2300, 720, 0xdbeafe, 0.1));
       scene.addSceneObject(scene.add.rectangle(1150, 610, 2300, 220, 0xfacc15));
       scene.addSceneObject(scene.add.rectangle(210, 230, 245, 150, 0x22c55e).setStrokeStyle(5, 0x166534));
       scene.addSceneObject(scene.add.text(135, 195, 'ABC', { fontFamily: 'Arial, sans-serif', fontSize: '42px', color: '#ffffff' }));

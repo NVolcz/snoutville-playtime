@@ -2,9 +2,12 @@
   "id": "peppa",
   "displayName": "Peppa",
   "type": "character",
-  "reviewStatus": "draft",
-  "reviewNotes": "Transparent PNG created from AI-generated JPG source for human review; canvas normalized for bottom-center anchoring.",
-  "origin": { "x": 0.5, "y": 1.0 },
+  "reviewStatus": "approved",
+  "reviewNotes": "Approved first-pass gameplay sprite; continue art polish in later review passes.",
+  "origin": {
+    "x": 0.5,
+    "y": 1.0
+  },
   "defaultScale": 0.42,
   "animations": {
     "idle": {

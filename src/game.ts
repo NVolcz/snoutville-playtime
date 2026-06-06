@@ -65,6 +65,9 @@ class PretendPlayScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('world_map', getAssetUrl('assets/sprites/map/world_map.jpg'));
+    this.load.image('background_park', getAssetUrl('assets/sprites/backgrounds/muddy_puddle_park.png'));
+    this.load.image('background_house', getAssetUrl('assets/sprites/backgrounds/family_house.png'));
+    this.load.image('background_school', getAssetUrl('assets/sprites/backgrounds/school_playgroup.png'));
 
     const playerManifests = [
       ...characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id)),
@@ -469,7 +472,8 @@ class PretendPlayScene extends Phaser.Scene {
     const manifest = characterManifests.find((item) => item.id === manifestId);
     if (!manifest || !manifest.animations.idle?.frames.length) return undefined;
 
-    const shadow = this.addSceneObject(this.add.ellipse(x, y + SHADOW_Y_OFFSET, 88, 22, 0x1f2937, 0.18));
+    const shadowSize = getCharacterShadowSize(manifest);
+    const shadow = this.addSceneObject(this.add.ellipse(x, y + SHADOW_Y_OFFSET, shadowSize.width, shadowSize.height, 0x1f2937, 0.18));
     shadow.setDepth(y - 1);
 
     const character = this.addSceneObject(this.add.image(x, y, toFrameKey(manifest.id, 'idle', 0)));
@@ -593,7 +597,9 @@ class PretendPlayScene extends Phaser.Scene {
   }
 
   private updateCharacterShadow(instance: CharacterInstance): void {
+    const shadowSize = getCharacterShadowSize(instance.manifest);
     instance.shadow.setPosition(instance.image.x, instance.image.y + SHADOW_Y_OFFSET);
+    instance.shadow.setDisplaySize(shadowSize.width, shadowSize.height);
     instance.shadow.setDepth(instance.image.y - 1);
   }
 
@@ -840,6 +846,14 @@ class PretendPlayScene extends Phaser.Scene {
 
 function getGameScale(manifest: SpriteManifest): number {
   return manifest.defaultScale * GAME_CHARACTER_SCALE;
+}
+
+function getCharacterShadowSize(manifest: SpriteManifest): { width: number; height: number } {
+  const scaleRatio = manifest.defaultScale / 0.42;
+  return {
+    width: Phaser.Math.Clamp(86 * scaleRatio, 58, 118),
+    height: Phaser.Math.Clamp(20 * scaleRatio, 13, 28)
+  };
 }
 
 function toFrameKey(manifestId: string, animationName: string, frameIndex: number): string {

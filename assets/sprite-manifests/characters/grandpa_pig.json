@@ -2,15 +2,20 @@
   "id": "grandpa_pig",
   "displayName": "Grandpa Pig",
   "type": "character",
-  "reviewStatus": "needs_changes",
-  "reviewNotes": "First-pass grandparent sprite; generated image may need background cleanup before approval.",
-  "origin": { "x": 0.5, "y": 1.0 },
+  "reviewStatus": "approved",
+  "reviewNotes": "Approved first-pass gameplay sprite; continue art polish in later review passes.",
+  "origin": {
+    "x": 0.5,
+    "y": 1.0
+  },
   "defaultScale": 0.46,
   "animations": {
     "idle": {
       "fps": 1,
       "loop": true,
-      "frames": ["assets/sprites/characters/grandpa_pig/idle_001.png"]
+      "frames": [
+        "assets/sprites/characters/grandpa_pig/idle_001.png"
+      ]
     }
   }
 }

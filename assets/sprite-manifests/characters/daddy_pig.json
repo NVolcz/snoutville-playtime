@@ -2,9 +2,12 @@
   "id": "daddy_pig",
   "displayName": "Daddy Pig",
   "type": "character",
-  "reviewStatus": "draft",
-  "reviewNotes": "AI-generated candidate using Peppa as style reference; transparent PNG and simple idle loop created for review.",
-  "origin": { "x": 0.5, "y": 1.0 },
+  "reviewStatus": "approved",
+  "reviewNotes": "Approved first-pass gameplay sprite; continue art polish in later review passes.",
+  "origin": {
+    "x": 0.5,
+    "y": 1.0
+  },
   "defaultScale": 0.5,
   "animations": {
     "idle": {
