@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { AudioManager } from './audioManager';
 import { startIdleAnimation as startCharacterIdleAnimation, stopIdleAnimation as stopCharacterIdleAnimation } from './characterAnimation';
 import { characterManifests, fixedObjectManifests, getAssetUrl } from './assetRegistry';
+import { clampDraggedCharacterPosition, getCharacterShadowSize, getGameScale, getGravitySettleY } from './characterController';
 import { FixedObjectSystem } from './fixedObjectSystem';
+import { getAvailableInventoryCharacters } from './inventoryTray';
 import { getLocation, getLocationIcon, locations } from './sceneDefinitions';
 import type { FixedObjectInstance, FixedObjectReaction, LocationDefinition } from './sceneDefinitions';
 import type { InteractionZone, SpriteManifest } from './types';
@@ -21,7 +23,6 @@ const VIEW_WIDTH = 1280;
 const VIEW_HEIGHT = 720;
 const TRAY_Y = 600;
 const TRAY_HEIGHT = 120;
-const GAME_CHARACTER_SCALE = 0.68;
 const SHADOW_Y_OFFSET = 1;
 const INITIAL_CHARACTER_IDS = ['peppa', 'george', 'mummy_pig', 'daddy_pig', 'suzy_sheep', 'grandpa_pig', 'madame_gazelle'];
 
@@ -386,7 +387,7 @@ class PretendPlayScene extends Phaser.Scene {
     this.trayObjects.push(label);
 
     const activeIds = new Set(this.characters.map((character) => character.manifest.id));
-    const available = characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id) && !activeIds.has(manifest.id));
+    const available = getAvailableInventoryCharacters(characterManifests, INITIAL_CHARACTER_IDS, activeIds);
 
     if (available.length === 0) {
       const empty = this.addUi(
@@ -801,7 +802,7 @@ class PretendPlayScene extends Phaser.Scene {
 
   private clampDraggedPosition(x: number, y: number): Phaser.Math.Vector2 {
     const maxX = this.currentLocation?.worldWidth ?? VIEW_WIDTH;
-    return new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 42, maxX - 42), y);
+    return clampDraggedCharacterPosition(x, y, maxX);
   }
 
   private settleCharacterWithGravity(instance: CharacterInstance, onSettled: () => void): void {
@@ -811,7 +812,7 @@ class PretendPlayScene extends Phaser.Scene {
     }
 
     const floorY = this.currentLocation?.floorY ?? 590;
-    const targetY = Phaser.Math.Clamp(instance.image.y, 160, floorY);
+    const targetY = getGravitySettleY(instance.image.y, floorY);
     if (Math.abs(instance.image.y - targetY) < 1) {
       instance.image.setDepth(instance.image.y);
       this.updateCharacterShadow(instance);
@@ -867,18 +868,6 @@ class PretendPlayScene extends Phaser.Scene {
   private screenToWorld(x: number, y: number): Phaser.Math.Vector2 {
     return new Phaser.Math.Vector2(x + this.cameras.main.scrollX, y + this.cameras.main.scrollY);
   }
-}
-
-function getGameScale(manifest: SpriteManifest): number {
-  return manifest.defaultScale * GAME_CHARACTER_SCALE;
-}
-
-function getCharacterShadowSize(manifest: SpriteManifest): { width: number; height: number } {
-  const scaleRatio = manifest.defaultScale / 0.42;
-  return {
-    width: Phaser.Math.Clamp(86 * scaleRatio, 58, 118),
-    height: Phaser.Math.Clamp(20 * scaleRatio, 13, 28)
-  };
 }
 
 function toFrameKey(manifestId: string, animationName: string, frameIndex: number): string {
