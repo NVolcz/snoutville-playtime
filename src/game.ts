@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { AudioManager } from './audioManager';
 import { startIdleAnimation as startCharacterIdleAnimation, stopIdleAnimation as stopCharacterIdleAnimation } from './characterAnimation';
 import { characterManifests, fixedObjectManifests, getAssetUrl } from './assetRegistry';
+import { FixedObjectSystem } from './fixedObjectSystem';
 import { getLocation, getLocationIcon, locations } from './sceneDefinitions';
 import type { FixedObjectInstance, FixedObjectReaction, LocationDefinition } from './sceneDefinitions';
 import type { InteractionZone, SpriteManifest } from './types';
@@ -47,7 +48,7 @@ export function mountGame(root: HTMLElement): () => void {
 class PretendPlayScene extends Phaser.Scene {
   private currentLocation?: LocationDefinition;
   private characters: CharacterInstance[] = [];
-  private fixedObjects: FixedObjectInstance[] = [];
+  private fixedObjectSystem = new FixedObjectSystem();
   private sceneObjects: Phaser.GameObjects.GameObject[] = [];
   private uiObjects: Phaser.GameObjects.GameObject[] = [];
   private trayObjects: Phaser.GameObjects.GameObject[] = [];
@@ -119,7 +120,7 @@ class PretendPlayScene extends Phaser.Scene {
     this.lastSplashAt = 0;
     this.puddle = undefined;
     this.puddleManifest = undefined;
-    this.fixedObjects = [];
+    this.fixedObjectSystem.clear();
     this.trayOpen = false;
 
     this.clearSceneObjects();
@@ -165,7 +166,7 @@ class PretendPlayScene extends Phaser.Scene {
     scale: number,
     reaction: FixedObjectReaction
   ): void {
-    this.fixedObjects.push({ id, object, zone, scale, reaction, lastTriggeredAt: 0 });
+    this.fixedObjectSystem.register(id, object, zone, scale, reaction);
   }
 
   private createPanSurface(location: LocationDefinition): void {
@@ -445,7 +446,7 @@ class PretendPlayScene extends Phaser.Scene {
     }
 
     this.characters = [];
-    this.fixedObjects = [];
+    this.fixedObjectSystem.clear();
     this.sceneObjects = [];
     this.uiObjects = [];
     this.trayObjects = [];
@@ -607,15 +608,11 @@ class PretendPlayScene extends Phaser.Scene {
     const now = this.time.now;
     if (instance.isReacting || now - this.lastSplashAt < 350) return;
 
-    for (const fixedObject of this.fixedObjects) {
-      if (now - fixedObject.lastTriggeredAt < 900) continue;
-      if (!isInsideZone(instance.image.x, instance.image.y, fixedObject.object.x, fixedObject.object.y, fixedObject.zone, fixedObject.scale)) continue;
+    const fixedObject = this.fixedObjectSystem.findTriggeredObject(instance.image.x, instance.image.y, now, this.lastSplashAt);
+    if (!fixedObject) return;
 
-      fixedObject.lastTriggeredAt = now;
-      this.lastSplashAt = now;
-      this.playFixedObjectReaction(fixedObject, instance);
-      return;
-    }
+    this.lastSplashAt = now;
+    this.playFixedObjectReaction(fixedObject, instance);
   }
 
   private playFixedObjectReaction(fixedObject: FixedObjectInstance, instance: CharacterInstance): void {
@@ -737,17 +734,11 @@ class PretendPlayScene extends Phaser.Scene {
   }
 
   private updateFixedObjectHover(instance: CharacterInstance): void {
-    for (const fixedObject of this.fixedObjects) {
-      const active = isInsideZone(instance.image.x, instance.image.y, fixedObject.object.x, fixedObject.object.y, fixedObject.zone, fixedObject.scale);
-      if (active) fixedObject.object.setTint?.(0xfff3a3);
-      else fixedObject.object.clearTint?.();
-    }
+    this.fixedObjectSystem.updateHover(instance.image.x, instance.image.y);
   }
 
   private clearFixedObjectHover(): void {
-    for (const fixedObject of this.fixedObjects) {
-      fixedObject.object.clearTint?.();
-    }
+    this.fixedObjectSystem.clearHover();
   }
 
   private checkSocialReactions(instance: CharacterInstance): void {
@@ -858,28 +849,6 @@ function getCharacterShadowSize(manifest: SpriteManifest): { width: number; heig
 
 function toFrameKey(manifestId: string, animationName: string, frameIndex: number): string {
   return `${manifestId}:${animationName}:${frameIndex}`;
-}
-
-function isInsideZone(
-  characterX: number,
-  characterY: number,
-  objectX: number,
-  objectY: number,
-  zone: InteractionZone,
-  objectScale: number
-): boolean {
-  const zoneCenterX = objectX + zone.x * objectScale;
-  const zoneCenterY = objectY + zone.y * objectScale;
-  const halfWidth = (zone.width * objectScale) / 2;
-  const halfHeight = (zone.height * objectScale) / 2;
-
-  if (zone.shape === 'rectangle') {
-    return Math.abs(characterX - zoneCenterX) <= halfWidth && Math.abs(characterY - zoneCenterY) <= halfHeight;
-  }
-
-  const normalizedX = (characterX - zoneCenterX) / halfWidth;
-  const normalizedY = (characterY - zoneCenterY) / halfHeight;
-  return normalizedX * normalizedX + normalizedY * normalizedY <= 1;
 }
 
 interface WebkitFullscreenElement extends HTMLElement {
