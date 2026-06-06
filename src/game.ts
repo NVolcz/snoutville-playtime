@@ -110,6 +110,12 @@ class PretendPlayScene extends Phaser.Scene {
     this.showMap();
   }
 
+  update(): void {
+    for (const character of this.characters) {
+      this.updateCharacterShadow(character);
+    }
+  }
+
   showMap(): void {
     this.teardownCameraDrag();
     this.currentLocation = undefined;
@@ -120,6 +126,8 @@ class PretendPlayScene extends Phaser.Scene {
     const map = this.addSceneObject(this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'world_map'));
     map.setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
     map.setScrollFactor(0);
+
+    this.createFullscreenButton();
 
     for (const location of locations) {
       this.createMapLocationButton(location);
@@ -292,6 +300,8 @@ class PretendPlayScene extends Phaser.Scene {
     leftPan.on('pointerdown', () => this.panCameraBy(-420));
     rightPan.on('pointerdown', () => this.panCameraBy(420));
 
+    this.createFullscreenButton();
+
     const trayToggle = this.addUi(
       this.add
         .ellipse(VIEW_WIDTH - 64, VIEW_HEIGHT - 64, 76, 76, 0xef4444)
@@ -311,6 +321,29 @@ class PretendPlayScene extends Phaser.Scene {
     void leftPanText;
     void rightPanText;
     void trayIcon;
+  }
+
+  private createFullscreenButton(): void {
+    if (!canEnterFullscreen()) return;
+
+    const button = this.addUi(
+      this.add
+        .rectangle(VIEW_WIDTH - 142, 30, 112, 38, 0xffffff)
+        .setStrokeStyle(2, 0xeadfcf)
+        .setInteractive({ useHandCursor: true })
+    );
+    const label = this.addUi(
+      this.add
+        .text(VIEW_WIDTH - 142, 30, '⛶ Full', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#1f2937' })
+        .setOrigin(0.5)
+    );
+
+    button.on('pointerdown', () => {
+      this.audio.pop();
+      void enterFullscreen();
+      button.destroy();
+      label.destroy();
+    });
   }
 
   private toggleCharacterTray(): void {
@@ -633,9 +666,13 @@ class PretendPlayScene extends Phaser.Scene {
     }
 
     this.audio.giggle();
+    this.addSparkleBurst(fixedObject.object.x, fixedObject.object.y - 80);
+    this.pulseFixedObject(fixedObject);
+
+    if (instance.isDragging) return;
+
     instance.isReacting = true;
     this.stopIdleAnimation(instance);
-    this.addSparkleBurst(fixedObject.object.x, fixedObject.object.y - 80);
 
     const jumpHeight = fixedObject.reaction === 'sofaBounce' ? 44 : 28;
     this.tweens.add({
@@ -655,6 +692,9 @@ class PretendPlayScene extends Phaser.Scene {
       }
     });
 
+  }
+
+  private pulseFixedObject(fixedObject: FixedObjectInstance): void {
     this.tweens.add({
       targets: fixedObject.object,
       scaleX: fixedObject.scale * 1.08,
@@ -669,22 +709,27 @@ class PretendPlayScene extends Phaser.Scene {
     if (!this.puddle || !this.puddleManifest) return;
 
     this.audio.splash();
-    instance.isReacting = true;
-    this.stopIdleAnimation(instance);
 
     const splashKey = toFrameKey(this.puddleManifest.id, 'splash', 0);
     const idleKey = toFrameKey(this.puddleManifest.id, 'idle', 0);
 
     this.puddle.setTexture(splashKey);
-    this.tweens.add({
-      targets: instance.shadow,
-      scaleX: 0.8,
-      scaleY: 0.8,
-      alpha: 0.1,
-      duration: 140,
-      yoyo: true,
-      ease: 'Sine.easeOut'
-    });
+
+    if (instance.isDragging) {
+      this.addSparkleBurst(this.puddle.x, this.puddle.y - 70);
+      this.tweens.add({
+        targets: this.puddle,
+        scaleX: this.puddleManifest.defaultScale * 1.38,
+        scaleY: this.puddleManifest.defaultScale * 1.38,
+        duration: 120,
+        yoyo: true,
+        onComplete: () => this.puddle?.setTexture(idleKey)
+      });
+      return;
+    }
+
+    instance.isReacting = true;
+    this.stopIdleAnimation(instance);
 
     this.tweens.add({
       targets: instance.image,
@@ -772,7 +817,7 @@ class PretendPlayScene extends Phaser.Scene {
 
   private clampDraggedPosition(x: number, y: number): Phaser.Math.Vector2 {
     const maxX = this.currentLocation?.worldWidth ?? VIEW_WIDTH;
-    return new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 42, maxX - 42), Phaser.Math.Clamp(y, 92, VIEW_HEIGHT - 24));
+    return new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 42, maxX - 42), y);
   }
 
   private settleCharacterWithGravity(instance: CharacterInstance, onSettled: () => void): void {
@@ -992,6 +1037,36 @@ function isInsideZone(
 
 function getWebkitAudioContext(): typeof AudioContext | undefined {
   return (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+}
+
+interface WebkitFullscreenElement extends HTMLElement {
+  webkitRequestFullscreen?: () => void;
+}
+
+interface WebkitFullscreenDocument extends Document {
+  webkitFullscreenElement?: Element | null;
+  webkitFullscreenEnabled?: boolean;
+}
+
+function canEnterFullscreen(): boolean {
+  const webkitDocument = document as WebkitFullscreenDocument;
+  const fullscreenElement = document.fullscreenElement ?? webkitDocument.webkitFullscreenElement;
+  const fullscreenEnabled = document.fullscreenEnabled || webkitDocument.webkitFullscreenEnabled;
+  const element = document.documentElement as WebkitFullscreenElement;
+  return !fullscreenElement && Boolean(fullscreenEnabled && (element.requestFullscreen || element.webkitRequestFullscreen));
+}
+
+async function enterFullscreen(): Promise<void> {
+  const element = document.documentElement as WebkitFullscreenElement;
+  try {
+    if (element.requestFullscreen) {
+      await element.requestFullscreen();
+      return;
+    }
+    element.webkitRequestFullscreen?.();
+  } catch {
+    // Fullscreen requests may be denied by browser policy; ignore and keep playing inline.
+  }
 }
 
 class TinyAudio {
