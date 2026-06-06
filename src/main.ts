@@ -1,6 +1,4 @@
 import './styles.css';
-import { mountGame } from './game';
-import { mountSpritePreview } from './spritePreview';
 
 type Page = 'game' | 'sprites';
 
@@ -17,8 +15,9 @@ function getCurrentPage(): Page {
   return window.location.pathname === '/dev/sprites' || window.location.hash === '#sprites' ? 'sprites' : 'game';
 }
 
-function render(): void {
+async function render(): Promise<void> {
   cleanup?.();
+  cleanup = undefined;
 
   const page = getCurrentPage();
 
@@ -37,8 +36,15 @@ function render(): void {
   }
 
   const pageRoot = document.querySelector<HTMLElement>('#page-root')!;
-  cleanup = page === 'sprites' ? mountSpritePreview(pageRoot) : mountGame(pageRoot);
+  if (page === 'sprites') {
+    const { mountSpritePreview } = await import('./spritePreview');
+    cleanup = mountSpritePreview(pageRoot);
+    return;
+  }
+
+  const { mountGame } = await import('./game');
+  cleanup = mountGame(pageRoot);
 }
 
-window.addEventListener('hashchange', render);
-render();
+window.addEventListener('hashchange', () => void render());
+void render();

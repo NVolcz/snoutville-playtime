@@ -1,7 +1,7 @@
 import { getAssetUrl, spriteManifests } from './assetRegistry';
 import type { SpriteAnimation, SpriteManifest } from './types';
 
-const backgrounds = ['checkerboard', 'white', 'park', 'house'] as const;
+const backgrounds = ['checkerboard', 'white', 'park', 'house', 'school', 'outdoor'] as const;
 const assetCacheBust = Date.now();
 type PreviewBackground = (typeof backgrounds)[number];
 

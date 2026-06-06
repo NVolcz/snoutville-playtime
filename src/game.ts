@@ -4,6 +4,7 @@ import type { InteractionZone, SpriteManifest } from './types';
 
 interface CharacterInstance {
   image: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Ellipse;
   manifest: SpriteManifest;
   idleEvent?: Phaser.Time.TimerEvent;
   isDragging?: boolean;
@@ -17,12 +18,24 @@ interface SceneCharacterPlacement {
   y: number;
 }
 
+type FixedObjectReaction = 'puddleSplash' | 'sofaBounce' | 'bathBubbles' | 'tableGiggle' | 'chalkScribble' | 'paintSplat' | 'blocksTumble';
+
+interface FixedObjectInstance {
+  id: string;
+  object: Phaser.GameObjects.GameObject & { x: number; y: number; setTint?: (tint: number) => unknown; clearTint?: () => unknown };
+  zone: InteractionZone;
+  scale: number;
+  reaction: FixedObjectReaction;
+  lastTriggeredAt: number;
+}
+
 interface LocationDefinition {
   id: string;
   label: string;
   mapX: number;
   mapY: number;
   worldWidth: number;
+  floorY: number;
   defaultCast: SceneCharacterPlacement[];
   drawBackground: (scene: PretendPlayScene) => void;
   createFixedObjects?: (scene: PretendPlayScene) => void;
@@ -33,7 +46,8 @@ const VIEW_HEIGHT = 720;
 const TRAY_Y = 600;
 const TRAY_HEIGHT = 120;
 const GAME_CHARACTER_SCALE = 0.68;
-const INITIAL_CHARACTER_IDS = ['peppa', 'george', 'mummy_pig', 'daddy_pig'];
+const SHADOW_Y_OFFSET = 1;
+const INITIAL_CHARACTER_IDS = ['peppa', 'george', 'mummy_pig', 'daddy_pig', 'suzy_sheep', 'grandpa_pig', 'madame_gazelle'];
 
 export function mountGame(root: HTMLElement): () => void {
   root.innerHTML = '<div id="game-canvas"></div>';
@@ -58,6 +72,7 @@ export function mountGame(root: HTMLElement): () => void {
 class PretendPlayScene extends Phaser.Scene {
   private currentLocation?: LocationDefinition;
   private characters: CharacterInstance[] = [];
+  private fixedObjects: FixedObjectInstance[] = [];
   private sceneObjects: Phaser.GameObjects.GameObject[] = [];
   private uiObjects: Phaser.GameObjects.GameObject[] = [];
   private trayObjects: Phaser.GameObjects.GameObject[] = [];
@@ -76,7 +91,12 @@ class PretendPlayScene extends Phaser.Scene {
   preload(): void {
     this.load.image('world_map', getAssetUrl('assets/sprites/map/world_map.jpg'));
 
-    for (const manifest of [...characterManifests, ...fixedObjectManifests]) {
+    const playerManifests = [
+      ...characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id)),
+      ...fixedObjectManifests
+    ];
+
+    for (const manifest of playerManifests) {
       for (const [animationName, animation] of Object.entries(manifest.animations)) {
         for (const [index, frame] of animation.frames.entries()) {
           this.load.image(toFrameKey(manifest.id, animationName, index), getAssetUrl(frame));
@@ -113,6 +133,7 @@ class PretendPlayScene extends Phaser.Scene {
     this.lastSplashAt = 0;
     this.puddle = undefined;
     this.puddleManifest = undefined;
+    this.fixedObjects = [];
     this.trayOpen = false;
 
     this.clearSceneObjects();
@@ -144,6 +165,21 @@ class PretendPlayScene extends Phaser.Scene {
     this.puddle.setOrigin(manifest.origin.x, manifest.origin.y);
     this.puddle.setScale(manifest.defaultScale * 1.25);
     this.puddle.setDepth(5);
+
+    const zone = manifest.interactionZones?.[0];
+    if (zone) {
+      this.registerFixedObject('muddy_puddle', this.puddle, zone, this.puddle.scaleX, 'puddleSplash');
+    }
+  }
+
+  registerFixedObject(
+    id: string,
+    object: Phaser.GameObjects.GameObject & { x: number; y: number; setTint?: (tint: number) => unknown; clearTint?: () => unknown },
+    zone: InteractionZone,
+    scale: number,
+    reaction: FixedObjectReaction
+  ): void {
+    this.fixedObjects.push({ id, object, zone, scale, reaction, lastTriggeredAt: 0 });
   }
 
   private createPanSurface(location: LocationDefinition): void {
@@ -178,6 +214,22 @@ class PretendPlayScene extends Phaser.Scene {
     );
 
     const pulse = this.addUi(this.add.ellipse(location.mapX, location.mapY, 44, 44, 0xffffff, 0.28));
+    const icon = this.addUi(
+      this.add
+        .text(location.mapX, location.mapY - 16, getLocationIcon(location.id), { fontSize: '42px' })
+        .setOrigin(0.5)
+    );
+    const label = this.addUi(
+      this.add
+        .text(location.mapX, location.mapY + 42, location.label, {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '18px',
+          color: '#1f2937',
+          backgroundColor: '#fffaf0',
+          padding: { x: 10, y: 5 }
+        })
+        .setOrigin(0.5)
+    );
 
     hotspot.on('pointerdown', () => {
       this.audio.pop();
@@ -194,6 +246,9 @@ class PretendPlayScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
+
+    void icon;
+    void label;
   }
 
   private createSceneUi(location: LocationDefinition): void {
@@ -319,21 +374,25 @@ class PretendPlayScene extends Phaser.Scene {
 
       icon.on('drag', (pointer: Phaser.Input.Pointer) => {
         if (!preview) return;
-        const worldPoint = this.screenToWorld(pointer.x, pointer.y);
+        const rawWorldPoint = this.screenToWorld(pointer.x, pointer.y);
+        const worldPoint = this.clampDraggedPosition(rawWorldPoint.x, rawWorldPoint.y);
         const deltaX = worldPoint.x - (preview.lastX ?? worldPoint.x);
         if (Math.abs(deltaX) > 1) preview.image.setFlipX(deltaX < 0);
         preview.lastX = worldPoint.x;
         preview.image.setPosition(worldPoint.x, worldPoint.y);
+        this.updateCharacterShadow(preview);
         this.addDragWiggle(preview, deltaX);
-        this.updatePuddleHover(preview);
+        this.updateFixedObjectHover(preview);
+        this.checkFixedObjectInteractions(preview);
       });
 
       icon.on('dragend', (pointer: Phaser.Input.Pointer) => {
         if (!preview) return;
-        const worldPoint = this.screenToWorld(pointer.x, pointer.y);
+        const rawWorldPoint = this.screenToWorld(pointer.x, pointer.y);
+        const worldPoint = this.clampDraggedPosition(rawWorldPoint.x, rawWorldPoint.y);
         this.draggingCharacter = false;
         preview.isDragging = false;
-        this.clearPuddleHover();
+        this.clearFixedObjectHover();
 
         if (pointer.y >= TRAY_Y - 8) {
           this.removeCharacter(preview, true);
@@ -344,8 +403,13 @@ class PretendPlayScene extends Phaser.Scene {
 
         preview.image.setPosition(worldPoint.x, worldPoint.y);
         preview.image.setDepth(worldPoint.y);
-        this.checkFixedObjectInteractions(preview);
-        if (!preview.isReacting) this.startIdleAnimation(preview);
+        this.updateCharacterShadow(preview);
+        const settledPreview = preview;
+        this.settleCharacterWithGravity(settledPreview, () => {
+          this.checkFixedObjectInteractions(settledPreview);
+          this.checkSocialReactions(settledPreview);
+          if (!settledPreview.isReacting) this.startIdleAnimation(settledPreview);
+        });
         preview = undefined;
         this.toggleCharacterTray();
       });
@@ -363,6 +427,7 @@ class PretendPlayScene extends Phaser.Scene {
     }
 
     this.characters = [];
+    this.fixedObjects = [];
     this.sceneObjects = [];
     this.uiObjects = [];
     this.trayObjects = [];
@@ -389,13 +454,16 @@ class PretendPlayScene extends Phaser.Scene {
     const manifest = characterManifests.find((item) => item.id === manifestId);
     if (!manifest || !manifest.animations.idle?.frames.length) return undefined;
 
+    const shadow = this.addSceneObject(this.add.ellipse(x, y + SHADOW_Y_OFFSET, 88, 22, 0x1f2937, 0.18));
+    shadow.setDepth(y - 1);
+
     const character = this.addSceneObject(this.add.image(x, y, toFrameKey(manifest.id, 'idle', 0)));
     character.setOrigin(manifest.origin.x, manifest.origin.y);
     character.setScale(getGameScale(manifest));
     character.setDepth(y);
     character.setInteractive({ draggable: true, useHandCursor: true });
 
-    const instance: CharacterInstance = { image: character, manifest, lastX: x };
+    const instance: CharacterInstance = { image: character, shadow, manifest, lastX: x };
     this.characters.push(instance);
     this.startIdleAnimation(instance);
     this.input.setDraggable(character);
@@ -410,20 +478,23 @@ class PretendPlayScene extends Phaser.Scene {
     });
 
     character.on('drag', (_pointer: Phaser.Input.Pointer, xPos: number, yPos: number) => {
-      const deltaX = xPos - (instance.lastX ?? xPos);
+      const clamped = this.clampDraggedPosition(xPos, yPos);
+      const deltaX = clamped.x - (instance.lastX ?? clamped.x);
       if (Math.abs(deltaX) > 1) character.setFlipX(deltaX < 0);
-      instance.lastX = xPos;
-      character.setPosition(xPos, yPos);
+      instance.lastX = clamped.x;
+      character.setPosition(clamped.x, clamped.y);
+      this.updateCharacterShadow(instance);
       this.addDragWiggle(instance, deltaX);
       this.updateTrayDropFeedback(character.y > TRAY_Y - 8);
-      this.updatePuddleHover(instance);
+      this.updateFixedObjectHover(instance);
+      this.checkFixedObjectInteractions(instance);
     });
 
     character.on('dragend', () => {
       this.draggingCharacter = false;
       instance.isDragging = false;
       this.updateTrayDropFeedback(false);
-      this.clearPuddleHover();
+      this.clearFixedObjectHover();
 
       if (character.y > TRAY_Y - 8 && this.trayOpen) {
         this.removeCharacter(instance, true);
@@ -432,9 +503,13 @@ class PretendPlayScene extends Phaser.Scene {
       }
 
       character.setDepth(character.y);
+      this.updateCharacterShadow(instance);
       character.setRotation(0);
-      this.checkFixedObjectInteractions(instance);
-      if (!instance.isReacting) this.startIdleAnimation(instance);
+      this.settleCharacterWithGravity(instance, () => {
+        this.checkFixedObjectInteractions(instance);
+        this.checkSocialReactions(instance);
+        if (!instance.isReacting) this.startIdleAnimation(instance);
+      });
     });
 
     character.on('pointerdown', () => {
@@ -454,15 +529,25 @@ class PretendPlayScene extends Phaser.Scene {
   private removeCharacter(instance: CharacterInstance, animate = false): void {
     instance.idleEvent?.remove(false);
     this.characters = this.characters.filter((item) => item !== instance);
-    this.sceneObjects = this.sceneObjects.filter((item) => item !== instance.image);
+    this.sceneObjects = this.sceneObjects.filter((item) => item !== instance.image && item !== instance.shadow);
     this.audio.pop(180);
 
     if (!animate) {
       instance.image.destroy();
+      instance.shadow.destroy();
       return;
     }
 
     this.tweens.killTweensOf(instance.image);
+    this.tweens.killTweensOf(instance.shadow);
+    this.tweens.add({
+      targets: instance.shadow,
+      alpha: 0,
+      scaleX: 0.2,
+      scaleY: 0.2,
+      duration: 140,
+      ease: 'Sine.easeIn'
+    });
     this.tweens.add({
       targets: instance.image,
       alpha: 0,
@@ -470,7 +555,10 @@ class PretendPlayScene extends Phaser.Scene {
       scaleY: getGameScale(instance.manifest) * 0.2,
       duration: 140,
       ease: 'Sine.easeIn',
-      onComplete: () => instance.image.destroy()
+      onComplete: () => {
+        instance.image.destroy();
+        instance.shadow.destroy();
+      }
     });
   }
 
@@ -497,7 +585,6 @@ class PretendPlayScene extends Phaser.Scene {
       targets: instance.image,
       scaleX: getGameScale(instance.manifest) * 1.015,
       scaleY: getGameScale(instance.manifest) * 0.985,
-      rotation: 0.012,
       y: instance.image.y - 3,
       duration: 1000,
       yoyo: true,
@@ -515,24 +602,67 @@ class PretendPlayScene extends Phaser.Scene {
   }
 
   private addDragWiggle(instance: CharacterInstance, deltaX: number): void {
-    const targetRotation = Phaser.Math.Clamp(deltaX * 0.01, -0.12, 0.12);
+    const targetRotation = Phaser.Math.Clamp(deltaX * 0.006, -0.05, 0.05);
     instance.image.setRotation(Phaser.Math.Linear(instance.image.rotation, targetRotation, 0.25));
   }
 
+  private updateCharacterShadow(instance: CharacterInstance): void {
+    instance.shadow.setPosition(instance.image.x, instance.image.y + SHADOW_Y_OFFSET);
+    instance.shadow.setDepth(instance.image.y - 1);
+  }
+
   private checkFixedObjectInteractions(instance: CharacterInstance): void {
-    if (this.currentLocation?.id !== 'park') return;
-    if (!this.puddle || !this.puddleManifest) return;
-
     const now = this.time.now;
-    if (instance.isReacting || instance.isDragging || now - this.lastSplashAt < 600) return;
+    if (instance.isReacting || now - this.lastSplashAt < 350) return;
 
-    const zone = this.puddleManifest.interactionZones?.[0];
-    if (!zone) return;
+    for (const fixedObject of this.fixedObjects) {
+      if (now - fixedObject.lastTriggeredAt < 900) continue;
+      if (!isInsideZone(instance.image.x, instance.image.y, fixedObject.object.x, fixedObject.object.y, fixedObject.zone, fixedObject.scale)) continue;
 
-    if (isInsideZone(instance.image.x, instance.image.y, this.puddle.x, this.puddle.y, zone, this.puddle.scaleX)) {
+      fixedObject.lastTriggeredAt = now;
       this.lastSplashAt = now;
-      this.playPuddleReaction(instance);
+      this.playFixedObjectReaction(fixedObject, instance);
+      return;
     }
+  }
+
+  private playFixedObjectReaction(fixedObject: FixedObjectInstance, instance: CharacterInstance): void {
+    if (fixedObject.reaction === 'puddleSplash') {
+      this.playPuddleReaction(instance);
+      return;
+    }
+
+    this.audio.giggle();
+    instance.isReacting = true;
+    this.stopIdleAnimation(instance);
+    this.addSparkleBurst(fixedObject.object.x, fixedObject.object.y - 80);
+
+    const jumpHeight = fixedObject.reaction === 'sofaBounce' ? 44 : 28;
+    this.tweens.add({
+      targets: instance.image,
+      y: instance.image.y - jumpHeight,
+      scaleX: getGameScale(instance.manifest) * 1.06,
+      scaleY: getGameScale(instance.manifest) * 0.96,
+      duration: 150,
+      yoyo: true,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        instance.isReacting = false;
+        if (!this.characters.includes(instance)) return;
+        instance.image.setDepth(instance.image.y);
+        this.updateCharacterShadow(instance);
+        this.startIdleAnimation(instance);
+      }
+    });
+
+    this.tweens.add({
+      targets: fixedObject.object,
+      scaleX: fixedObject.scale * 1.08,
+      scaleY: fixedObject.scale * 1.08,
+      duration: 130,
+      yoyo: true,
+      ease: 'Back.easeOut'
+    });
   }
 
   private playPuddleReaction(instance: CharacterInstance): void {
@@ -547,6 +677,16 @@ class PretendPlayScene extends Phaser.Scene {
 
     this.puddle.setTexture(splashKey);
     this.tweens.add({
+      targets: instance.shadow,
+      scaleX: 0.8,
+      scaleY: 0.8,
+      alpha: 0.1,
+      duration: 140,
+      yoyo: true,
+      ease: 'Sine.easeOut'
+    });
+
+    this.tweens.add({
       targets: instance.image,
       y: instance.image.y - 36,
       rotation: Phaser.Math.FloatBetween(-0.12, 0.12),
@@ -560,6 +700,7 @@ class PretendPlayScene extends Phaser.Scene {
         if (!this.characters.includes(instance)) return;
         instance.image.setRotation(0);
         instance.image.setDepth(instance.image.y);
+        this.updateCharacterShadow(instance);
         this.startIdleAnimation(instance);
       }
     });
@@ -591,17 +732,94 @@ class PretendPlayScene extends Phaser.Scene {
     this.cameraDragStart = undefined;
   }
 
-  private updatePuddleHover(instance: CharacterInstance): void {
-    if (!this.puddle || !this.puddleManifest) return;
-    const zone = this.puddleManifest.interactionZones?.[0];
-    if (!zone) return;
-
-    const active = isInsideZone(instance.image.x, instance.image.y, this.puddle.x, this.puddle.y, zone, this.puddle.scaleX);
-    this.puddle.setTint(active ? 0xfff3a3 : 0xffffff);
+  private updateFixedObjectHover(instance: CharacterInstance): void {
+    for (const fixedObject of this.fixedObjects) {
+      const active = isInsideZone(instance.image.x, instance.image.y, fixedObject.object.x, fixedObject.object.y, fixedObject.zone, fixedObject.scale);
+      if (active) fixedObject.object.setTint?.(0xfff3a3);
+      else fixedObject.object.clearTint?.();
+    }
   }
 
-  private clearPuddleHover(): void {
-    this.puddle?.clearTint();
+  private clearFixedObjectHover(): void {
+    for (const fixedObject of this.fixedObjects) {
+      fixedObject.object.clearTint?.();
+    }
+  }
+
+  private checkSocialReactions(instance: CharacterInstance): void {
+    if (instance.isReacting) return;
+    const friend = this.characters.find(
+      (character) =>
+        character !== instance &&
+        !character.isReacting &&
+        Phaser.Math.Distance.Between(character.image.x, character.image.y, instance.image.x, instance.image.y) < 135
+    );
+    if (!friend) return;
+
+    this.audio.giggle();
+    this.addSparkleBurst((instance.image.x + friend.image.x) / 2, Math.min(instance.image.y, friend.image.y) - 120);
+    for (const character of [instance, friend]) {
+      this.tweens.add({
+        targets: character.image,
+        scaleX: getGameScale(character.manifest) * 1.08,
+        scaleY: getGameScale(character.manifest) * 1.08,
+        duration: 110,
+        yoyo: true,
+        ease: 'Sine.easeOut'
+      });
+    }
+  }
+
+  private clampDraggedPosition(x: number, y: number): Phaser.Math.Vector2 {
+    const maxX = this.currentLocation?.worldWidth ?? VIEW_WIDTH;
+    return new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 42, maxX - 42), Phaser.Math.Clamp(y, 92, VIEW_HEIGHT - 24));
+  }
+
+  private settleCharacterWithGravity(instance: CharacterInstance, onSettled: () => void): void {
+    if (!this.characters.includes(instance) || instance.isReacting) {
+      onSettled();
+      return;
+    }
+
+    const floorY = this.currentLocation?.floorY ?? 590;
+    const targetY = Phaser.Math.Clamp(instance.image.y, 160, floorY);
+    if (Math.abs(instance.image.y - targetY) < 1) {
+      instance.image.setDepth(instance.image.y);
+      this.updateCharacterShadow(instance);
+      onSettled();
+      return;
+    }
+
+    this.tweens.add({
+      targets: instance.image,
+      y: targetY,
+      duration: Math.max(120, Math.abs(instance.image.y - targetY) * 1.15),
+      ease: 'Quad.easeIn',
+      onUpdate: () => this.updateCharacterShadow(instance),
+      onComplete: () => {
+        instance.image.setDepth(instance.image.y);
+        this.updateCharacterShadow(instance);
+        onSettled();
+      }
+    });
+  }
+
+  private addSparkleBurst(x: number, y: number): void {
+    for (let index = 0; index < 5; index += 1) {
+      const sparkle = this.addSceneObject(this.add.star(x, y, 5, 5, 13, 0xffffff, 0.9));
+      sparkle.setDepth(850);
+      this.tweens.add({
+        targets: sparkle,
+        x: x + Phaser.Math.Between(-46, 46),
+        y: y + Phaser.Math.Between(-38, 16),
+        alpha: 0,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        duration: 430,
+        ease: 'Sine.easeOut',
+        onComplete: () => sparkle.destroy()
+      });
+    }
   }
 
   private updateTrayDropFeedback(active: boolean): void {
@@ -629,6 +847,7 @@ const locations: LocationDefinition[] = [
     mapX: 340,
     mapY: 365,
     worldWidth: 2400,
+    floorY: 585,
     defaultCast: [
       { id: 'peppa', x: 320, y: 585 },
       { id: 'george', x: 470, y: 585 }
@@ -655,6 +874,7 @@ const locations: LocationDefinition[] = [
     mapX: 650,
     mapY: 430,
     worldWidth: 2200,
+    floorY: 590,
     defaultCast: [
       { id: 'mummy_pig', x: 320, y: 590 },
       { id: 'daddy_pig', x: 500, y: 590 },
@@ -671,6 +891,18 @@ const locations: LocationDefinition[] = [
       scene.addSceneObject(scene.add.rectangle(835, 320, 82, 60, 0xfca5a5).setStrokeStyle(3, 0x7f1d1d));
       scene.addSceneObject(scene.add.rectangle(1220, 345, 220, 95, 0x93c5fd).setStrokeStyle(4, 0x1d4ed8));
       scene.addSceneObject(scene.add.rectangle(1370, 310, 90, 170, 0xa16207).setStrokeStyle(4, 0x713f12));
+    },
+    createFixedObjects: (scene) => {
+      const sofa = scene.addSceneObject(scene.add.rectangle(760, 560, 320, 82, 0xef4444).setStrokeStyle(4, 0x7f1d1d));
+      scene.registerFixedObject('house_sofa', sofa, createZone('house_sofa_zone', 0, 18, 280, 92), 1, 'sofaBounce');
+
+      const bath = scene.addSceneObject(scene.add.ellipse(1220, 565, 260, 88, 0x93c5fd, 0.72).setStrokeStyle(4, 0x1d4ed8));
+      scene.registerFixedObject('house_bath', bath, createZone('house_bath_zone', 0, 8, 230, 90), 1, 'bathBubbles');
+
+      const table = scene.addSceneObject(scene.add.rectangle(1640, 560, 260, 56, 0xf59e0b).setStrokeStyle(4, 0x92400e));
+      scene.addSceneObject(scene.add.circle(1585, 524, 22, 0xffffff).setStrokeStyle(3, 0xf97316));
+      scene.addSceneObject(scene.add.circle(1695, 524, 22, 0xffffff).setStrokeStyle(3, 0xf97316));
+      scene.registerFixedObject('house_table', table, createZone('house_table_zone', 0, 22, 260, 90), 1, 'tableGiggle');
     }
   },
   {
@@ -679,6 +911,7 @@ const locations: LocationDefinition[] = [
     mapX: 935,
     mapY: 335,
     worldWidth: 2300,
+    floorY: 590,
     defaultCast: [
       { id: 'peppa', x: 330, y: 590 },
       { id: 'george', x: 480, y: 590 },
@@ -696,12 +929,35 @@ const locations: LocationDefinition[] = [
       scene.addSceneObject(scene.add.rectangle(1230, 330, 190, 140, 0xffffff).setStrokeStyle(4, 0x94a3b8));
       scene.addSceneObject(scene.add.circle(1400, 390, 48, 0xef4444));
       scene.addSceneObject(scene.add.circle(1490, 390, 48, 0x3b82f6));
+    },
+    createFixedObjects: (scene) => {
+      const chalkboard = scene.addSceneObject(scene.add.rectangle(210, 380, 270, 62, 0x22c55e, 0.35).setStrokeStyle(3, 0x166534));
+      scene.registerFixedObject('school_chalkboard', chalkboard, createZone('school_chalkboard_zone', 0, 12, 280, 108), 1, 'chalkScribble');
+
+      const paint = scene.addSceneObject(scene.add.ellipse(760, 560, 260, 78, 0xf97316, 0.55).setStrokeStyle(4, 0x9a3412));
+      scene.registerFixedObject('school_paint_table', paint, createZone('school_paint_zone', 0, 10, 250, 90), 1, 'paintSplat');
+
+      const blocks = scene.addSceneObject(scene.add.rectangle(1445, 560, 245, 80, 0x93c5fd, 0.45).setStrokeStyle(4, 0x2563eb));
+      scene.addSceneObject(scene.add.rectangle(1390, 520, 54, 54, 0xef4444));
+      scene.addSceneObject(scene.add.rectangle(1450, 520, 54, 54, 0x3b82f6));
+      scene.addSceneObject(scene.add.rectangle(1510, 520, 54, 54, 0x22c55e));
+      scene.registerFixedObject('school_blocks', blocks, createZone('school_blocks_zone', 0, 14, 250, 100), 1, 'blocksTumble');
     }
   }
 ];
 
 function getLocation(locationId: string): LocationDefinition {
   return locations.find((location) => location.id === locationId) ?? locations[0];
+}
+
+function getLocationIcon(locationId: string): string {
+  if (locationId === 'house') return '🏠';
+  if (locationId === 'school') return '🎨';
+  return '🌧️';
+}
+
+function createZone(id: string, x: number, y: number, width: number, height: number, shape: InteractionZone['shape'] = 'ellipse'): InteractionZone {
+  return { id, shape, x, y, width, height };
 }
 
 function getGameScale(manifest: SpriteManifest): number {
@@ -763,6 +1019,11 @@ class TinyAudio {
   splash(): void {
     this.playTone(170, 0.07, 'triangle', 0.04);
     window.setTimeout(() => this.playTone(260, 0.055, 'sine', 0.03), 30);
+  }
+
+  giggle(): void {
+    this.playTone(520, 0.045, 'sine', 0.025);
+    window.setTimeout(() => this.playTone(680, 0.04, 'sine', 0.022), 55);
   }
 
   private playTone(frequency: number, duration: number, type: OscillatorType, volume: number): void {

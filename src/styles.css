@@ -191,6 +191,14 @@ input {
   background: linear-gradient(#ffe7be 0 70%, #d6b48f 70% 100%);
 }
 
+.school {
+  background: linear-gradient(#dbeafe 0 70%, #facc15 70% 100%);
+}
+
+.outdoor {
+  background: linear-gradient(#bde7ff 0 55%, #8ed174 55% 78%, #7c4a24 78% 100%);
+}
+
 .anchor-marker {
   background: #ef4444;
   border: 3px solid white;
