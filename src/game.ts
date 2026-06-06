@@ -627,8 +627,8 @@ class PretendPlayScene extends Phaser.Scene {
   }
 
   private addDragWiggle(instance: CharacterInstance, deltaX: number): void {
-    const targetRotation = Phaser.Math.Clamp(deltaX * 0.006, -0.05, 0.05);
-    instance.image.setRotation(Phaser.Math.Linear(instance.image.rotation, targetRotation, 0.25));
+    const stretch = Phaser.Math.Clamp(Math.abs(deltaX) * 0.0015, 0, 0.025);
+    instance.image.setScale(getGameScale(instance.manifest) * (1 + stretch), getGameScale(instance.manifest) * (1 - stretch * 0.5));
   }
 
   private updateCharacterShadow(instance: CharacterInstance): void {
