@@ -67,6 +67,7 @@ class PretendPlayScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('world_map', getAssetUrl('assets/sprites/map/world_map.jpg'));
+    this.load.image('character_tray_icon', getAssetUrl('assets/sprites/ui/character_tray_icon.png'));
 
     const playerManifests = characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id));
 
@@ -322,7 +323,7 @@ class PretendPlayScene extends Phaser.Scene {
         .setStrokeStyle(4, 0xffffff)
         .setInteractive({ useHandCursor: true })
     );
-    const trayIcon = this.addUi(this.add.text(VIEW_WIDTH - 64, VIEW_HEIGHT - 64, '🐷', { fontSize: '34px' }).setOrigin(0.5));
+    const trayIcon = this.addUi(this.add.image(VIEW_WIDTH - 64, VIEW_HEIGHT - 64, 'character_tray_icon').setDisplaySize(54, 54));
 
     trayToggle.on('pointerdown', () => {
       this.audio.pop();
@@ -364,13 +365,6 @@ class PretendPlayScene extends Phaser.Scene {
     this.trayOpen = !this.trayOpen;
     this.clearTrayObjects();
     if (this.trayOpen) this.createInventoryTray();
-  }
-
-  private openCharacterTray(): void {
-    if (this.trayOpen) return;
-    this.trayOpen = true;
-    this.clearTrayObjects();
-    this.createInventoryTray();
   }
 
   private createInventoryTray(): void {
@@ -540,7 +534,6 @@ class PretendPlayScene extends Phaser.Scene {
       character.setPosition(clamped.x, clamped.y);
       this.updateCharacterShadow(instance);
       this.addDragWiggle(instance, deltaX);
-      if (!this.trayOpen && character.y > TRAY_Y - 36) this.openCharacterTray();
       this.updateTrayDropFeedback(character.y > TRAY_Y - 8);
       this.updateFixedObjectHover(instance);
       this.checkFixedObjectInteractions(instance);
