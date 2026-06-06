@@ -1,0 +1,40 @@
+{
+  "id": "fixed_object_id",
+  "displayName": "Fixed Object Name",
+  "type": "fixed_object",
+  "reviewStatus": "draft",
+  "reviewNotes": "",
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "defaultScale": 1.0,
+  "interactionZones": [
+    {
+      "id": "main_zone",
+      "shape": "ellipse",
+      "x": 0,
+      "y": 0,
+      "width": 160,
+      "height": 80
+    }
+  ],
+  "animations": {
+    "idle": {
+      "fps": 1,
+      "loop": true,
+      "frames": [
+        "assets/sprites/fixed-objects/fixed_object_id/idle_001.png"
+      ]
+    },
+    "splash": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "assets/sprites/fixed-objects/fixed_object_id/splash_001.png",
+        "assets/sprites/fixed-objects/fixed_object_id/splash_002.png",
+        "assets/sprites/fixed-objects/fixed_object_id/splash_003.png"
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "peppa-pig-pretend-play-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "aube@0.0.1",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  },
+  "engines": {
+    "node": ">=26.1.0"
+  }
+}
