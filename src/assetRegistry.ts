@@ -13,7 +13,8 @@ export const characterManifests = spriteManifests.filter((manifest) => manifest.
 export const fixedObjectManifests = spriteManifests.filter((manifest) => manifest.type === 'fixed_object');
 
 export function getAssetUrl(path: string): string {
-  return path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = path.replace(/^\/+/, '');
+  return `${import.meta.env.BASE_URL}${normalizedPath}`;
 }
 
 export function findManifest(id: string): SpriteManifest | undefined {
