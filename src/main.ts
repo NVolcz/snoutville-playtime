@@ -12,7 +12,7 @@ if (!appElement) {
 const app = appElement;
 
 function getCurrentPage(): Page {
-  return window.location.pathname === '/dev/sprites' || window.location.hash === '#sprites' ? 'sprites' : 'game';
+  return window.location.hash === '#sprites' ? 'sprites' : 'game';
 }
 
 async function render(): Promise<void> {
