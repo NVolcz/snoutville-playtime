@@ -269,7 +269,7 @@ class PretendPlayScene extends Phaser.Scene {
     );
     const mapText = this.addUi(
       this.add
-        .text(74, 30, 'Map', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#1f2937' })
+        .text(74, 30, '🗺️ Map', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#1f2937' })
         .setOrigin(0.5)
     );
     const title = this.addUi(
@@ -352,12 +352,19 @@ class PretendPlayScene extends Phaser.Scene {
     if (this.trayOpen) this.createInventoryTray();
   }
 
+  private openCharacterTray(): void {
+    if (this.trayOpen) return;
+    this.trayOpen = true;
+    this.clearTrayObjects();
+    this.createInventoryTray();
+  }
+
   private createInventoryTray(): void {
     const tray = this.addUi(this.add.rectangle(VIEW_WIDTH / 2, TRAY_Y + TRAY_HEIGHT / 2, VIEW_WIDTH, TRAY_HEIGHT, 0xfffaf0, 0.96));
     this.trayObjects.push(tray);
 
     const label = this.addUi(
-      this.add.text(20, TRAY_Y + 12, 'Characters', {
+      this.add.text(20, TRAY_Y + 12, '🐷 Characters · Drop here to send home', {
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         color: '#6b7280'
@@ -518,6 +525,7 @@ class PretendPlayScene extends Phaser.Scene {
       character.setPosition(clamped.x, clamped.y);
       this.updateCharacterShadow(instance);
       this.addDragWiggle(instance, deltaX);
+      if (!this.trayOpen && character.y > TRAY_Y - 36) this.openCharacterTray();
       this.updateTrayDropFeedback(character.y > TRAY_Y - 8);
       this.updateFixedObjectHover(instance);
       this.checkFixedObjectInteractions(instance);
