@@ -371,34 +371,24 @@ class PretendPlayScene extends Phaser.Scene {
     const tray = this.addUi(this.add.rectangle(VIEW_WIDTH / 2, TRAY_Y + TRAY_HEIGHT / 2, VIEW_WIDTH, TRAY_HEIGHT, 0xfffaf0, 0.96));
     this.trayObjects.push(tray);
 
-    const label = this.addUi(
-      this.add.text(20, TRAY_Y + 12, '🐷 Characters · Drop here to send home', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        color: '#6b7280'
-      })
+    const trayToggle = this.addUi(
+      this.add
+        .ellipse(VIEW_WIDTH - 64, VIEW_HEIGHT - 64, 76, 76, 0xef4444)
+        .setStrokeStyle(4, 0xffffff)
+        .setInteractive({ useHandCursor: true })
     );
-    this.trayObjects.push(label);
+    const trayIcon = this.addUi(this.add.image(VIEW_WIDTH - 64, VIEW_HEIGHT - 64, 'character_tray_icon').setDisplaySize(54, 54));
+    trayToggle.on('pointerdown', () => {
+      this.audio.pop();
+      this.toggleCharacterTray();
+    });
+    this.trayObjects.push(trayToggle, trayIcon);
 
     const activeIds = new Set(this.characters.map((character) => character.manifest.id));
     const available = getAvailableInventoryCharacters(characterManifests, INITIAL_CHARACTER_IDS, activeIds);
 
-    if (available.length === 0) {
-      const empty = this.addUi(
-        this.add
-          .text(VIEW_WIDTH / 2, TRAY_Y + 54, 'Everyone is already playing', {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '18px',
-            color: '#6b7280'
-          })
-          .setOrigin(0.5)
-      );
-      this.trayObjects.push(empty);
-      return;
-    }
-
     available.forEach((manifest, index) => {
-      const x = 112 + index * 92;
+      const x = 132 + index * 122;
       const icon = this.addUi(this.add.image(x, TRAY_Y + 74, toFrameKey(manifest.id, 'idle', 0)));
       icon.setOrigin(manifest.origin.x, manifest.origin.y);
       icon.setScale(manifest.defaultScale * 0.46);
