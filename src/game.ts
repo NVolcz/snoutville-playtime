@@ -66,14 +66,8 @@ class PretendPlayScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('world_map', getAssetUrl('assets/sprites/map/world_map.jpg'));
-    this.load.image('background_park', getAssetUrl('assets/sprites/backgrounds/muddy_puddle_park.png'));
-    this.load.image('background_house', getAssetUrl('assets/sprites/backgrounds/family_house.png'));
-    this.load.image('background_school', getAssetUrl('assets/sprites/backgrounds/school_playgroup.png'));
 
-    const playerManifests = [
-      ...characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id)),
-      ...fixedObjectManifests
-    ];
+    const playerManifests = characterManifests.filter((manifest) => INITIAL_CHARACTER_IDS.includes(manifest.id));
 
     for (const manifest of playerManifests) {
       for (const [animationName, animation] of Object.entries(manifest.animations)) {
@@ -116,6 +110,10 @@ class PretendPlayScene extends Phaser.Scene {
 
   loadLocation(locationId: string): void {
     const location = getLocation(locationId);
+    this.ensureLocationAssets(location, () => this.enterLocation(location));
+  }
+
+  private enterLocation(location: LocationDefinition): void {
     this.currentLocation = location;
     this.lastSplashAt = 0;
     this.puddle = undefined;
@@ -136,6 +134,42 @@ class PretendPlayScene extends Phaser.Scene {
     }
 
     this.createSceneUi(location);
+  }
+
+  private ensureLocationAssets(location: LocationDefinition, onReady: () => void): void {
+    const queued = this.queueLocationAssets(location);
+    if (!queued) {
+      onReady();
+      return;
+    }
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, onReady);
+    this.load.start();
+  }
+
+  private queueLocationAssets(location: LocationDefinition): boolean {
+    let queued = false;
+    const queueImage = (key: string, path: string) => {
+      if (this.textures.exists(key)) return;
+      this.load.image(key, getAssetUrl(path));
+      queued = true;
+    };
+
+    if (location.id === 'park') queueImage('background_park', 'assets/sprites/backgrounds/muddy_puddle_park.png');
+    if (location.id === 'house') queueImage('background_house', 'assets/sprites/backgrounds/family_house.png');
+    if (location.id === 'school') queueImage('background_school', 'assets/sprites/backgrounds/school_playgroup.png');
+
+    if (location.id === 'park') {
+      for (const manifest of fixedObjectManifests) {
+        for (const [animationName, animation] of Object.entries(manifest.animations)) {
+          for (const [index, frame] of animation.frames.entries()) {
+            queueImage(toFrameKey(manifest.id, animationName, index), frame);
+          }
+        }
+      }
+    }
+
+    return queued;
   }
 
   addSceneObject<T extends Phaser.GameObjects.GameObject>(object: T): T {
